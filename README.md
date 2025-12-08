@@ -16,7 +16,7 @@ The system operates on a three-layered architecture:
 
 1. Clone the repository:  
 ```   
-git clone \[https://github.com/yourusername/MedNegotiator.git\](https://github.com/yourusername/MedNegotiator.git)  
+git clone \[https://github.com/tanhaei/MedNegotiator.git\](https://github.com/tanhaei/MedNegotiator.git)  
 cd MedNegotiator
 ```
 
