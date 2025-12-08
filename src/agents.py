@@ -1,65 +1,102 @@
-from openai import OpenAI
-import os
+# src/agents.py
+import openai
+import json
+from typing import Dict, List
 
 class BaseAgent:
-    def __init__(self, name, role, system_prompt):
+    def __init__(self, name: str, role: str, goal: str, client: openai.OpenAI):
         self.name = name
         self.role = role
-        self.system_prompt = system_prompt
-        # Initialize OpenAI client (Assumes API Key is in env)
-        self.client = OpenAI(api_key=os.getenv("OPENAI_API_KEY"))
-        self.history = [{"role": "system", "content": system_prompt}]
+        self.goal = goal
+        self.client = client
+        self.history = []
 
-    def generate_response(self, opponent_input):
-        self.history.append({"role": "user", "content": opponent_input})
-        
-        # In a real scenario, we would use the LLM call here.
-        # response = self.client.chat.completions.create(model="gpt-4", messages=self.history)
-        # content = response.choices[0].message.content
-        
-        # For this demo repo (to be runnable without credits), we simulate the logic 
-        # based on the paper's script, but the structure is ready for LLM.
-        return f"[LLM GENERATION Placeholder for {self.name}]" 
+    def _call_llm(self, system_prompt: str, user_prompt: str) -> str:
+        messages = [{"role": "system", "content": system_prompt}] + self.history + [{"role": "user", "content": user_prompt}]
+        response = self.client.chat.completions.create(
+            model="gpt-4", # Or suitable model
+            messages=messages,
+            temperature=0.2 # Low temp for reproducibility [cite: 283]
+        )
+        return response.choices[0].message.content
+
+    def retrieve_context(self, query: str) -> str:
+        """
+        Mock RAG Stub. In production, this connects to a Vector DB.
+        Ref: Layer 1 RAG Knowledge Base [cite: 81]
+        """
+        # This acts as a placeholder for the RAG retrieval logic described in Section 3.1.1
+        return f"[Retrieved Context: Guidelines relevant to '{query}']"
 
 class ClinicalAgent(BaseAgent):
-    def __init__(self):
-        prompt = """
-        You are Dr. AI, a senior pathologist with 20 years of experience.
-        BIAS: Severity Bias (Prioritize patient data completeness over cost).
-        GOAL: Ensure raw WSI files are stored for AI research.
+    """
+    Represents the Demand Side (Dr. AI).
+    Bias: Severity Bias (Over-prioritizes patient safety/data granularity). [cite: 98]
+    """
+    def propose(self, scenario: str) -> Dict:
+        rag_data = self.retrieve_context(scenario)
+        sys_prompt = f"""
+        You are {self.name}, a {self.role}. Your goal is: {self.goal}.
+        You have 'Severity Bias': You prioritize clinical detail/safety over cost.
+        Context: {rag_data}
+        Task: Propose a requirement for the scenario: '{scenario}'.
+        Output format: JSON with keys 'text', 'importance_1_to_5', 'rationale'.
         """
-        super().__init__("Dr. Onc", "Clinical Agent", prompt)
-    
-    # Override for simulation purposes if no API key
-    def simulate_response(self, round_num, context):
-        if round_num == 1:
-            return "I propose REQ-042. We need raw .SVS files. Lossy compression destroys nuclear details essential for diagnosis."
-        elif round_num == 3:
-            return "Acceptable, provided the retrieval process is automated and SLA is reasonable."
-        return "I insist on data quality."
+        response = self._call_llm(sys_prompt, "Generate proposal.")
+        self.history.append({"role": "assistant", "content": response})
+        return self._parse_json(response)
+
+    def critique(self, proposal_text: str) -> Dict:
+        sys_prompt = f"You are {self.name}. Critique the technical proposal regarding '{proposal_text}'. Focus on patient safety."
+        response = self._call_llm(sys_prompt, "Evaluate this proposal.")
+        return {"text": response}
+
+    def _parse_json(self, text):
+        # Simplified parser for demo
+        try:
+            return json.loads(text)
+        except:
+            return {"text": text, "importance_1_to_5": 5, "rationale": "Parsing error"}
 
 class TechnicalAgent(BaseAgent):
-    def __init__(self):
-        prompt = """
-        You are Arch. Sys, a pragmatic software architect.
-        BIAS: Loss Aversion (Risk avoidance, budget conscious).
-        GOAL: Maintain system stability and stay within the $50k/mo budget.
+    """
+    Represents the Supply Side (Arch. AI).
+    Bias: Loss Aversion (Prioritizes stability/budget over features). [cite: 103]
+    """
+    def evaluate(self, proposal: Dict) -> Dict:
+        rag_data = self.retrieve_context("infrastructure constraints")
+        sys_prompt = f"""
+        You are {self.name}, a {self.role}. Your goal is: {self.goal}.
+        You have 'Loss Aversion': You reject risks and high costs.
+        Context: {rag_data}
+        Task: Evaluate the clinical proposal: '{proposal['text']}'.
+        Estimate cost ($) and risk probability (0.0-1.0).
+        Output format: JSON with keys 'critique_text', 'estimated_cost', 'risk_prob', 'accepted_bool'.
         """
-        super().__init__("Arch. Sys", "Technical Agent", prompt)
+        response = self._call_llm(sys_prompt, "Evaluate proposal.")
+        self.history.append({"role": "assistant", "content": response})
+        return self._parse_json(response)
 
-    def simulate_response(self, round_num, context):
-        if round_num == 1:
-            return "Rejected. Storing 500PB of hot data costs $10M/year. This violates our budget constraints."
-        elif round_num == 2:
-            return "I acknowledge the value, but the infrastructure can't handle it. I propose storing downsampled JPEGs and discarding raw files."
-        elif round_num == 3:
-            return "Acceptable. Cold storage fits within the budget margin."
-        return "We need to cut costs."
+    def counter_offer(self, clinical_demand: str) -> Dict:
+        sys_prompt = f"You are {self.name}. Offer a technical compromise for: '{clinical_demand}' that saves cost."
+        response = self._call_llm(sys_prompt, "Generate counter-offer.")
+        return {"text": response}
+    
+    def _parse_json(self, text):
+        try:
+            return json.loads(text)
+        except:
+            return {"critique_text": text, "estimated_cost": 50000, "risk_prob": 0.5, "accepted_bool": False}
 
 class MediatorAgent(BaseAgent):
-    def __init__(self):
-        prompt = "You are the Mediator. Your goal is to maximize the Nash Product of the negotiation."
-        super().__init__("Mediator", "Conflict Resolver", prompt)
-        
-    def propose_solution(self):
-        return "Suggesting Hybrid Architecture: 1. Hot Storage for Tiles (View). 2. Cold Storage for Raw (Archive). This balances Cost and Value."
+    """
+    Ref: Section 3.5 Conflict Resolution via Mediator Agent [cite: 135]
+    """
+    def resolve_deadlock(self, clin_history, tech_history) -> str:
+        sys_prompt = f"""
+        You are a Mediator using Pareto Optimization.
+        Review the conflict between Clinical and Technical agents.
+        Suggest a 'Tiered Storage' or 'Hybrid' solution that maximizes the Nash Product.
+        """
+        combined_context = f"Clin: {clin_history}\nTech: {tech_history}"
+        return self._call_llm(sys_prompt, combined_context)

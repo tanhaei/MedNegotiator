@@ -1,67 +1,74 @@
-from termcolor import colored
-from src.engine import QFDEngine
+# src/protocol.py
+from src.agents import ClinicalAgent, TechnicalAgent, MediatorAgent
+from src.engine import AxiologicalEngine
 
-class NegotiationSession:
-    def __init__(self, clinical_agent, technical_agent, mediator_agent):
-        self.clin = clinical_agent
-        self.tech = technical_agent
-        self.med = mediator_agent
-        self.rounds = 0
-        self.max_rounds = 5
-        self.history = []
+class NegotiationProtocol:
+    """
+    Manages the Dynamic Negotiation Protocol (Round-based state machine).
+    Ref: Layer 3 and Section 3.4 [cite: 90, 126]
+    """
+    
+    def __init__(self, scenario: str, max_rounds: int = 5):
+        self.scenario = scenario
+        self.max_rounds = max_rounds
+        self.engine = AxiologicalEngine()
+        self.logs = []
 
-    def run(self):
-        print(colored("--- Starting MedNegotiator Simulation: WSI Storage Conflict ---", "cyan", attrs=['bold']))
+    def run(self, clin_agent: ClinicalAgent, tech_agent: TechnicalAgent, mediator: MediatorAgent):
+        current_proposal = None
         
-        # Initial Proposal
-        self.rounds = 1
-        proposal = self.clin.simulate_response(1, "")
-        self.log_turn(self.clin, proposal)
-        
-        # Evaluation
-        u_clin = QFDEngine.calculate_clinical_utility(proposal)
-        u_tech = QFDEngine.calculate_technical_utility(proposal)
-        self.log_stats(u_clin, u_tech)
+        print(f"--- Starting Negotiation for Scenario: {self.scenario} ---")
 
-        if u_tech < 0.4:
-            print(colored(f"[System] Technical Agent rejects proposal (U_tech {u_tech} < Threshold)", "red"))
+        for round_num in range(1, self.max_rounds + 1):
+            print(f"\n[Round {round_num}]")
             
-            # Counter Proposal
-            counter = self.tech.simulate_response(1, proposal)
-            self.log_turn(self.tech, counter)
+            # Phase 1: Clinical Agent Proposes [cite: 127]
+            if round_num == 1 or not current_proposal:
+                proposal_data = clin_agent.propose(self.scenario)
+                print(f"Dr. AI proposes: {proposal_data.get('text')}")
+                print(f"Rationale: {proposal_data.get('rationale')}")
             
-            # Round 2
-            self.rounds = 2
-            defense = self.clin.simulate_response(2, counter) # Simulation logic
-            # (Skipping full logic for brevity of the demo file)
+            # Phase 2: Technical Agent Evaluates (Axiological Check) [cite: 129]
+            tech_eval = tech_agent.evaluate(proposal_data)
             
-            # Round 3 - Mediation Trigger
-            self.rounds = 3
-            print(colored("\n[System] Deadlock Detected! Triggering Mediator...", "yellow"))
+            # Calculate Utilities using the Engine
+            u_clin = self.engine.calculate_clinical_utility(
+                importance_weight=proposal_data.get('importance_1_to_5', 5),
+                satisfaction=0.9, # Assumed high for their own proposal
+                ambiguity_score=0.1
+            )
+            u_tech = self.engine.calculate_technical_utility(
+                est_cost=tech_eval.get('estimated_cost', 100000),
+                risk_prob=tech_eval.get('risk_prob', 0.5)
+            )
             
-            solution = self.med.propose_solution()
-            self.log_turn(self.med, solution)
-            
-            # Final Agreement
-            response_clin = self.clin.simulate_response(3, solution)
-            response_tech = self.tech.simulate_response(3, solution)
-            
-            self.log_turn(self.clin, response_clin)
-            self.log_turn(self.tech, response_tech)
-            
-            # Final Stats
-            u_clin_final = 0.85
-            u_tech_final = 0.78
-            nash = QFDEngine.calculate_nash_product(u_clin_final, u_tech_final)
-            self.log_stats(u_clin_final, u_tech_final, nash)
-            print(colored(f"\n[Result] Consensus Reached. Nash Product: {nash:.2f}", "green", attrs=['bold']))
+            nash_score = self.engine.calculate_nash_product(u_clin, u_tech)
+            print(f"[System] U_clin: {u_clin:.2f}, U_tech: {u_tech:.2f} -> Nash: {nash_score:.2f}")
 
-    def log_turn(self, agent, message):
-        print(f"\n[{agent.role}] {agent.name}: {message}")
-        self.history.append(f"{agent.name}: {message}")
+            # Check for Consensus
+            if tech_eval.get('accepted_bool') and nash_score > 0.5:
+                print(">>> CONSENSUS REACHED <<<")
+                return self._generate_output(proposal_data, tech_eval)
 
-    def log_stats(self, uc, ut, nash=None):
-        msg = f"   >>> Metrics: U_clin={uc:.2f}, U_tech={ut:.2f}"
-        if nash:
-            msg += f", Nash={nash:.2f}"
-        print(colored(msg, "grey"))
+            # Phase 3: Critique & Counter-Offer (Deadlock Handling)
+            print(f"Arch. AI rejects: {tech_eval.get('critique_text')}")
+            
+            # Deadlock Logic [cite: 135]
+            if round_num >= 3 and nash_score < 0.2:
+                print(">>> DEADLOCK DETECTED - ACTIVATING MEDIATOR <<<")
+                resolution = mediator.resolve_deadlock(clin_agent.history, tech_agent.history)
+                print(f"Mediator Resolution: {resolution}")
+                return resolution
+
+            # Loop continues (Responder becomes proposer in full implementation)
+            
+        print(">>> MAX ROUNDS REACHED - NO AGREEMENT <<<")
+        return None
+
+    def _generate_output(self, final_proposal, final_tech_review):
+        # Generates JSON/SRS artifact [cite: 147]
+        return {
+            "status": "AGREED",
+            "requirement": final_proposal['text'],
+            "constraints": final_tech_review['critique_text']
+        }

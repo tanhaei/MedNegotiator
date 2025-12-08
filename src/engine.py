@@ -1,52 +1,54 @@
-import numpy as np
+# src/engine.py
+import math
 
-class QFDEngine:
+class AxiologicalEngine:
     """
-    Simulates the Axiological Layer: Calculating Utility based on features.
-    In a real implementation, this would parse the text. 
-    Here we use a simplified heuristic model for demonstration.
+    Implements the mathematical logic for Utility Calculation and Nash Bargaining Solution.
+    Ref: Layer 2 in Architecture
     """
-    
-    @staticmethod
-    def calculate_clinical_utility(proposal_text):
+
+    def __init__(self, budget_max: float = 100000.0, ambiguity_penalty_coeff: float = 0.2):
+        self.budget_max = budget_max
+        self.lambda_ambiguity = ambiguity_penalty_coeff  # Lambda in Eq 1
+        self.risk_weight = 10000.0 # Beta coefficient for risk monetization
+
+    def calculate_clinical_utility(self, importance_weight: int, satisfaction: float, ambiguity_score: float) -> float:
         """
-        Calculates U_clin based on keywords representing clinical value.
+        Calculates U_clin based on QFD weights and Ambiguity Penalty.
+        Formula: U_clin = (w * phi(r)) - lambda * Psi(R)
         """
-        score = 0.5 # Base satisfaction
+        # Normalize inputs
+        w_norm = importance_weight / 5.0  # Assuming 1-5 scale
         
-        # Clinical "Excitement" features
-        if "raw" in proposal_text.lower() or "wsi" in proposal_text.lower():
-            score += 0.4
-        if "ai analysis" in proposal_text.lower():
-            score += 0.1
-            
-        # Penalties (e.g., if delay is mentioned)
-        if "delay" in proposal_text.lower() or "latency" in proposal_text.lower():
-            score -= 0.2
-            
-        return min(max(score, 0.0), 1.0)
-
-    @staticmethod
-    def calculate_technical_utility(proposal_text):
-        """
-        Calculates U_tech based on cost and risk keywords.
-        """
-        score = 0.8 # Base stability
+        # Core utility
+        u_base = w_norm * satisfaction
         
-        # Technical "Pain" points
-        if "500pb" in proposal_text.lower() or "raw storage" in proposal_text.lower():
-            score -= 0.7
-        if "real-time" in proposal_text.lower() and "huge" in proposal_text.lower():
-            score -= 0.5
-            
-        # Mitigations (Technical wins)
-        if "cold storage" in proposal_text.lower() or "tiered" in proposal_text.lower():
-            score += 0.4
-        if "jpeg" in proposal_text.lower() or "compressed" in proposal_text.lower():
-            score += 0.3
+        # Penalty
+        penalty = self.lambda_ambiguity * ambiguity_score
+        
+        return max(0.0, u_base - penalty)
 
-        return min(max(score, 0.0), 1.0)
+    def calculate_technical_utility(self, est_cost: float, risk_prob: float) -> float:
+        """
+        Calculates U_tech based on Budget, Cost, and Risk.
+        Formula: U_tech = Budget_max - (Cost + beta * Risk)
+        Note: We normalize this to 0-1 range for Nash calculation.
+        """
+        total_impact = est_cost + (self.risk_weight * risk_prob)
+        
+        # Calculating remaining budget ratio as utility
+        if total_impact > self.budget_max:
+            return 0.1  # Soft floor for rejection
+        
+        utility = (self.budget_max - total_impact) / self.budget_max
+        return max(0.1, utility)
 
-    @staticmethod
-    def calculate_nash_product(u_clin, u_tech):
-        return u_clin * u_tech
+    def calculate_nash_product(self, u_clin: float, u_tech: float, d_clin: float = 0.0, d_tech: float = 0.0) -> float:
+        """
+        Calculates the Nash Product to measure 'fairness'.
+        Formula: Omega = (U_clin - d_clin) * (U_tech - d_tech)
+        """
+        surplus_clin = max(0, u_clin - d_clin)
+        surplus_tech = max(0, u_tech - d_tech)
+        
+        return surplus_clin * surplus_tech
