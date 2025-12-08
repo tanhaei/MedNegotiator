@@ -12,6 +12,9 @@ The system operates on a three-layered architecture:
 2. **Axiological Layer:** A QFD-based engine that calculates Utility Scores ($U\_{clin}$, $U\_{tech}$) for every proposal.  
 3. **Communication Layer:** Implements an *Alternating Offers Protocol* with a Mediator for deadlock resolution.
 
+![Compare](arch.png)
+*Figure: The Multi-Layered Architecture of MedNegotiator. **Layer 1** handles semantic reasoning via LLMs and RAG; **Layer 2** quantifies values using QFD principles; **Layer 3** manages the stateful negotiation protocol and mediation logic.*
+
 ## **🚀 Installation**
 
 1. Clone the repository:  
