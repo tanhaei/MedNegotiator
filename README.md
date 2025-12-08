@@ -16,13 +16,13 @@ The system operates on a three-layered architecture:
 
 1. Clone the repository:  
 ```   
-git clone \[https://github.com/tanhaei/MedNegotiator.git\](https://github.com/tanhaei/MedNegotiator.git)  
+git clone [https://github.com/tanhaei/MedNegotiator.git](https://github.com/tanhaei/MedNegotiator.git)  
 cd MedNegotiator
 ```
 
 2. Install dependencies:  
 ```
-pip install \-r requirements.txt
+pip install -r requirements.txt
 ```
 
 3. Set up your environment:  
