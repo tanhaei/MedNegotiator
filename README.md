@@ -33,7 +33,9 @@ pip install -r requirements.txt
 
 To run the "WSI Storage Conflict" case study (as described in the paper):
 
+```
 python main.py
+```
 
 ### **Example Output**
 
