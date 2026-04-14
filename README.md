@@ -2,17 +2,35 @@
 
 **MedNegotiator** is a multi-agent framework designed to automate the negotiation of conflicting requirements in healthcare software projects. By leveraging Large Language Models (LLMs) and Game Theory (Nash Bargaining Solution), it simulates realistic interactions between clinical and technical stakeholders to reach Pareto-optimal agreements.
 
-**Note:** This repository contains the reference implementation for the paper: *"Automating Requirements Negotiation in Healthcare: Simulating Clinical and Technical Perspectives using Generative AI Agents"*.
+**Note:** This repository contains the reference implementation for the published paper: *"MedNegotiator: Automating requirements negotiation in healthcare by simulating clinical and technical perspectives using generative AI agents"*.
 
 ## **📚 Reference**
 
-Published article on ScienceDirect: *MedNegotiator: Automating requirements negotiation in healthcare by simulating clinical and technical perspectives using generative AI agents*.
+Published article on ScienceDirect:  
+*MedNegotiator: Automating requirements negotiation in healthcare by simulating clinical and technical perspectives using generative AI agents*  
+https://www.sciencedirect.com/science/article/pii/S2590005626001062
 
-Article link: https://www.sciencedirect.com/science/article/pii/S2590005626001062
+## **📖 BibTeX**
+
+```bibtex
+@article{tanhaei2026mednegotiator,
+  title     = {MedNegotiator: Automating requirements negotiation in healthcare by simulating clinical and technical perspectives using generative AI agents},
+  author    = {Tanhaei, Mohammad},
+  journal   = {Array},
+  year      = {2026},
+  publisher = {Elsevier},
+  pii       = {S2590005626001062},
+  url       = {https://www.sciencedirect.com/science/article/pii/S2590005626001062}
+}
+```
+
+A standalone BibTeX file is also included as `CITATION.bib`.
 
 ## **🏗️ Architecture**
 
 The system operates on a three-layered architecture:
+
+![MedNegotiator Architecture](arch.png)
 
 1. **Cognitive Layer:** Agents (Clinical & Technical) powered by LLMs with injected personas (Severity Bias vs. Loss Aversion).  
 2. **Axiological Layer:** A QFD-based engine that calculates Utility Scores ($U_{clin}$, $U_{tech}$) for every proposal.  
@@ -20,22 +38,20 @@ The system operates on a three-layered architecture:
 
 ## **🚀 Installation**
 
-1. Clone the repository:
-
+1. Clone the repository:  
 ```bash
 git clone https://github.com/yourusername/MedNegotiator.git
 cd MedNegotiator
 ```
 
-2. Install dependencies:
-
+2. Install dependencies:  
 ```bash
 pip install -r requirements.txt
 ```
 
-3. Set up your environment:
-   - Rename `.env.example` to `.env`
-   - Add your OpenAI API key (or other LLM provider key)
+3. Set up your environment:  
+   * Rename `.env.example` to `.env`  
+   * Add your OpenAI API Key (or other LLM provider key).
 
 ## **🏃 Usage**
 
@@ -58,9 +74,9 @@ python main.py
 
 ## **🧠 Core Components**
 
-- `src/agents.py`: Defines the ClinicalAgent and TechnicalAgent classes with specific system prompts and RAG stubs.  
-- `src/engine.py`: Implements the mathematical utility functions and Nash Product calculation.  
-- `src/protocol.py`: Manages the negotiation rounds, turn-taking, and mediation logic.
+* `src/agents.py`: Defines the ClinicalAgent and TechnicalAgent classes with specific system prompts and RAG stubs.  
+* `src/engine.py`: Implements the mathematical utility functions and Nash Product calculation.  
+* `src/protocol.py`: Manages the negotiation rounds, turn-taking, and mediation logic.
 
 ## **🤝 Contributing**
 
