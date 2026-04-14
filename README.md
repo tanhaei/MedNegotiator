@@ -24,7 +24,7 @@ https://www.sciencedirect.com/science/article/pii/S2590005626001062
 }
 ```
 
-A standalone BibTeX file is also included as `CITATION.bib`.
+- **BibTeX file:** [`CITATION.bib`](CITATION.bib)
 
 ## **🏗️ Architecture**
 
