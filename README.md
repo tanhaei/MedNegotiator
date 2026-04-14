@@ -1,64 +1,58 @@
-# **MedNegotiator: Agent-Based Requirements Engineering Framework**
+# MedNegotiator
 
-**MedNegotiator** is a multi-agent framework designed to automate the negotiation of conflicting requirements in healthcare software projects. By leveraging Large Language Models (LLMs) and Game Theory (Nash Bargaining Solution), it simulates realistic interactions between clinical and technical stakeholders to reach Pareto-optimal agreements.
+This repository is a corrected, runnable reference implementation aligned more closely with the paper's architecture.
 
-**Note:** This repository contains the reference implementation for the paper: *"Automating Requirements Negotiation in Healthcare: Simulating Clinical and Technical Perspectives using Generative AI Agents"*.
+## What was fixed
 
-## **🏗️ Architecture**
+- Replaced the broken dependency file with a valid `requirements.txt`.
+- Removed the hard-coded API key pattern and switched to `.env` / environment-based configuration.
+- Updated the default model name to `gpt-4o`, matching the paper.
+- Implemented a normalized axiological engine with:
+  - clinical utility `U_clin = w * phi - lambda * Psi`
+  - technical utility normalized from budget, cost, and risk
+  - Nash product calculation
+  - hard-constraint rejection
+- Added a lightweight `ConsistencyGuard` with:
+  - semantic anchoring
+  - predicate extraction
+  - hard safety / budget checks
+- Reworked the negotiation protocol into an actual alternating-offers process with:
+  - round logs
+  - deadlock detection
+  - mediator fallback
+- Added deterministic fallback logic so the demo runs even without an API key.
 
-The system operates on a three-layered architecture:
+## Installation
 
-1. **Cognitive Layer:** Agents (Clinical & Technical) powered by LLMs with injected personas (Severity Bias vs. Loss Aversion).  
-2. **Axiological Layer:** A QFD-based engine that calculates Utility Scores ($U\_{clin}$, $U\_{tech}$) for every proposal.  
-3. **Communication Layer:** Implements an *Alternating Offers Protocol* with a Mediator for deadlock resolution.
-
-![Compare](arch.png)
-*Figure: The Multi-Layered Architecture of MedNegotiator. **Layer 1** handles semantic reasoning via LLMs and RAG; **Layer 2** quantifies values using QFD principles; **Layer 3** manages the stateful negotiation protocol and mediation logic.*
-
-## **🚀 Installation**
-
-1. Clone the repository:  
-```   
-git clone [https://github.com/tanhaei/MedNegotiator.git](https://github.com/tanhaei/MedNegotiator.git)  
-cd MedNegotiator
-```
-
-2. Install dependencies:  
-```
+```bash
+python -m venv .venv
+source .venv/bin/activate
 pip install -r requirements.txt
+cp .env.example .env
 ```
 
-3. Set up your environment:  
-   * Rename .env.example to .env  
-   * Add your OpenAI API Key (or other LLM provider key).
+Add your OpenAI key to `.env` only if you want live LLM calls. Without a key, the project runs in deterministic offline-demo mode.
 
-## **🏃 Usage**
+## Usage
 
-To run the "WSI Storage Conflict" case study (as described in the paper):
-
-```
+```bash
 python main.py
 ```
 
-### **Example Output**
+Or pass a custom scenario:
 
-\[Round 1\] Clinical Agent (Dr. Onc): I propose storing raw WSI files for AI research...  
-\[System\] Technical Utility: 0.12 (REJECTED)  
-\[Round 1\] Technical Agent (Arch. Sys): Rejected. Cost exceeds budget by 400%...  
-...  
-\[Round 3\] Mediator: Detecting deadlock... Suggesting Tiered Storage Strategy.  
-\[System\] Nash Product Score: 0.63 (CONSENSUS REACHED)
+```bash
+python main.py --scenario "Store raw WSI files for research while keeping pathology review responsive."
+```
 
-## **🧠 Core Components**
+## Files
 
-* src/agents.py: Defines the ClinicalAgent and TechnicalAgent classes with specific system prompts and RAG stubs.  
-* src/engine.py: Implements the mathematical utility functions and Nash Product calculation.  
-* src/protocol.py: Manages the negotiation rounds, turn-taking, and mediation logic.
+- `src/agents.py`: persona-driven agents and deterministic fallbacks
+- `src/engine.py`: utility calculations and Nash bargaining
+- `src/guard.py`: consistency guard and semantic anchoring proxy
+- `src/protocol.py`: negotiation rounds, deadlock detection, mediation
+- `src/utils.py`: helpers for parsing and lightweight text similarity
 
-## **🤝 Contributing**
+## Notes
 
-Contributions are welcome\! Please read the contribution guidelines first.
-
-## **📄 License**
-
-This project is licensed under the MIT License.
+This is still a compact reference implementation, not the full research stack. The paper mentions FAISS-backed RAG, averaged multi-run scoring, and richer NL-to-FOL parsing. Those are represented here with lightweight placeholders so the code remains reproducible and self-contained.
